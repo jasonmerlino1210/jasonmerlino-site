@@ -540,7 +540,11 @@
       drops = new Array(cols).fill(0);
     }
 
-    function drawRain() {
+    let lastRainFrame = 0;
+    function drawRain(ts) {
+      animId = requestAnimationFrame(drawRain);
+      if (ts - lastRainFrame < 70) return; // throttled so each glyph lingers longer
+      lastRainFrame = ts;
       ctx.fillStyle = 'rgba(10,9,8,0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#3ddc4f';
@@ -551,14 +555,14 @@
         if (drops[i] * 18 > canvas.height && Math.random() > 0.975) drops[i] = 0;
         drops[i]++;
       }
-      animId = requestAnimationFrame(drawRain);
     }
 
     function openOverlay() {
       resize();
       overlay.classList.add('active');
       overlay.classList.remove('opening');
-      drawRain();
+      lastRainFrame = 0;
+      animId = requestAnimationFrame(drawRain);
       ropeTimer = setTimeout(() => rope.classList.add('show'), 900);
     }
 
