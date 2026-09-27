@@ -279,17 +279,39 @@
     margin: 0 auto 28px;
   }
   .choice-trigger {
-    background: transparent;
-    border: 1px solid var(--hairline);
-    color: var(--cream);
+    background: none;
+    border: none;
+    color: var(--muted);
     font-family: inherit;
-    font-size: 15px;
-    padding: 14px 32px;
-    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.03em;
     cursor: pointer;
-    transition: border-color 0.3s, color 0.3s;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 6px;
+    transition: color 0.3s;
   }
-  .choice-trigger:hover { border-color: var(--red); color: var(--red); }
+  .choice-trigger:hover { color: var(--red); }
+  .baseball-icon {
+    width: 54px;
+    height: 54px;
+    display: block;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NyIgZmlsbD0iI2Y2ZWZlNCIgc3Ryb2tlPSIjYzljMGIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0yMiwxMCBDMzQsMzAgMzQsNzAgMjIsOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2MwMzkyYiIgc3Ryb2tlLXdpZHRoPSIyLjYiLz4KICA8cGF0aCBkPSJNNzgsMTAgQzY2LDMwIDY2LDcwIDc4LDkwIiBmaWxsPSJub25lIiBzdHJva2U9IiNjMDM5MmIiIHN0cm9rZS13aWR0aD0iMi42Ii8+CiAgPGcgc3Ryb2tlPSIjYzAzOTJiIiBzdHJva2Utd2lkdGg9IjEuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSIyMi42IiB5MT0iMTcuMiIgeDI9IjMwLjYiIHkyPSIyMy4yIiAvPgogICAgPGxpbmUgeDE9IjY5LjQiIHkxPSIxNy4yIiB4Mj0iNzcuNCIgeTI9IjIzLjIiIC8+CiAgICA8bGluZSB4MT0iMjUuNiIgeTE9IjI5LjMiIHgyPSIzMy42IiB5Mj0iMzUuMyIgLz4KICAgIDxsaW5lIHgxPSI2Ni40IiB5MT0iMjkuMyIgeDI9Ijc0LjQiIHkyPSIzNS4zIiAvPgogICAgPGxpbmUgeDE9IjI2LjkiIHkxPSI0Mi41IiB4Mj0iMzQuOSIgeTI9IjQ4LjUiIC8+CiAgICA8bGluZSB4MT0iNjUuMSIgeTE9IjQyLjUiIHgyPSI3My4xIiB5Mj0iNDguNSIgLz4KICAgIDxsaW5lIHgxPSIyNi42IiB5MT0iNTYuMCIgeDI9IjM0LjYiIHkyPSI2Mi4wIiAvPgogICAgPGxpbmUgeDE9IjY1LjQiIHkxPSI1Ni4wIiB4Mj0iNzMuNCIgeTI9IjYyLjAiIC8+CiAgICA8bGluZSB4MT0iMjQuOCIgeTE9IjY4LjkiIHgyPSIzMi44IiB5Mj0iNzQuOSIgLz4KICAgIDxsaW5lIHgxPSI2Ny4yIiB5MT0iNjguOSIgeDI9Ijc1LjIiIHkyPSI3NC45IiAvPgogICAgPGxpbmUgeDE9IjIxLjIiIHkxPSI4MC40IiB4Mj0iMjkuMiIgeTI9Ijg2LjQiIC8+CiAgICA8bGluZSB4MT0iNzAuOCIgeTE9IjgwLjQiIHgyPSI3OC44IiB5Mj0iODYuNCIgLz4KICA8L2c+Cjwvc3ZnPg==");
+    background-size: contain;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+    animation: baseballSpinBob 2.4s ease-in-out infinite;
+  }
+  .choice-trigger:hover .baseball-icon {
+    animation-duration: 0.9s;
+  }
+  @keyframes baseballSpinBob {
+    0%   { transform: translateY(0)    rotate(0deg); }
+    50%  { transform: translateY(-6px) rotate(180deg); }
+    100% { transform: translateY(0)    rotate(360deg); }
+  }
 
   .choice-overlay {
     position: fixed;
@@ -449,7 +471,10 @@
       <div class="choice-intro">
         <h2>There's one more thing here</h2>
         <p>Not everything on this site is where it looks like it is.</p>
-        <button class="choice-trigger" id="choiceTrigger">pull the rope</button>
+        <button class="choice-trigger" id="choiceTrigger" aria-label="pull the rope">
+          <span class="baseball-icon" aria-hidden="true"></span>
+          <span>pull the rope</span>
+        </button>
       </div>
     </section>
 
