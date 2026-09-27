@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Catch the Code — Jason Merlino</title>
+<title>Backyard Innings — Jason Merlino</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,23 +22,21 @@
   * { box-sizing: border-box; }
   body {
     margin: 0;
+    min-height: 100vh;
     background: var(--black);
     color: var(--cream);
     font-family: 'Space Grotesk', sans-serif;
     -webkit-font-smoothing: antialiased;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   a { color: inherit; }
 
   header {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 0; right: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 20px clamp(20px, 5vw, 48px);
-    z-index: 20;
   }
   .mark {
     font-family: 'Instrument Serif', serif;
@@ -55,79 +53,145 @@
   }
   .back-link:hover { color: var(--red); border-color: var(--red); }
 
-  #gameCanvas {
-    position: fixed;
-    inset: 0;
-    display: block;
-  }
-
-  .hud {
-    position: fixed;
-    top: calc(80px + env(safe-area-inset-top, 0px));
-    left: 0; right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 48px;
-    z-index: 15;
-    pointer-events: none;
-  }
-  .hud .stat { text-align: center; }
-  .hud .stat .num {
-    font-family: 'Instrument Serif', serif;
-    font-style: italic;
-    font-size: 40px;
-    color: var(--green);
-    line-height: 1;
-  }
-  .hud .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-  .intro, .final {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
+  main {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    background: rgba(10,9,8,0.88);
-    backdrop-filter: blur(4px);
-    padding: 20px;
+    padding: 0 20px 40px;
+    gap: 30px;
   }
-  .intro h1, .final h1 {
+
+  h1.title {
     font-family: 'Instrument Serif', serif;
     font-weight: 400;
     font-style: italic;
-    font-size: clamp(36px, 6vw, 56px);
+    font-size: clamp(32px, 5.5vw, 48px);
     color: var(--red);
-    margin: 0 0 16px;
+    margin: 0;
   }
-  .intro p, .final p {
-    color: var(--muted);
-    max-width: 40ch;
-    font-size: 15px;
-    line-height: 1.6;
-    margin: 0 0 30px;
+
+  .scoreboard {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+  }
+  .stat { text-align: center; }
+  .stat .num {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 34px;
+    color: var(--green);
+    line-height: 1;
+  }
+  .stat .label { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.02em; }
+  .dots { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 1px solid var(--muted);
+  }
+  .dot.filled { background: var(--red); border-color: var(--red); }
+
+  .lane {
+    position: relative;
+    width: min(560px, 88vw);
+    height: 64px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #17140f, #121110);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+  .sweet-zone {
+    position: absolute;
+    right: 8%;
+    top: 0; bottom: 0;
+    width: 10%;
+    background: rgba(61,220,79,0.12);
+    border-left: 1px dashed rgba(61,220,79,0.4);
+    border-right: 1px dashed rgba(61,220,79,0.4);
+  }
+  .plate {
+    position: absolute;
+    right: 3%;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+  }
+  .ball {
+    position: absolute;
+    left: 2%;
+    top: 50%;
+    transform: translate(0, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--red) 70%);
+    opacity: 0;
+    transition: left linear, opacity 0.15s;
+  }
+  .ball.flying { opacity: 1; }
+
+  .result-banner {
+    min-height: 30px;
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--cream);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .result-banner.show { opacity: 1; }
+  .result-banner.hit { color: var(--green); }
+  .result-banner.bad { color: var(--red); }
+
+  .controls { display: flex; gap: 20px; }
+  button.action {
+    background: transparent;
+    border: 1px solid var(--hairline);
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 16px;
+    padding: 16px 40px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, opacity 0.2s;
+  }
+  button.action:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+  button.action:disabled { opacity: 0.3; cursor: default; }
+  button.action.primary { background: var(--red); border-color: var(--red); color: var(--cream); }
+  button.action.primary:hover:not(:disabled) { opacity: 0.88; color: var(--cream); }
+
+  .final {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(10,9,8,0.92);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+  }
+  .final.show { display: flex; }
+  .final h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(32px, 6vw, 48px);
+    color: var(--red);
+    margin: 0 0 10px;
   }
   .final .score {
     font-family: 'Instrument Serif', serif;
     font-style: italic;
-    font-size: 64px;
+    font-size: 60px;
     color: var(--green);
     margin: 0 0 8px;
   }
-  button.cta {
-    background: var(--red);
-    color: var(--cream);
-    border: none;
-    font-family: inherit;
-    font-size: 15px;
-    padding: 14px 34px;
-    border-radius: 999px;
-    cursor: pointer;
-  }
-  button.cta:hover { opacity: 0.88; }
-  .hidden { display: none !important; }
+  .final p { color: var(--muted); max-width: 40ch; font-size: 15px; margin: 0 0 28px; }
 </style>
 </head>
 <body>
@@ -136,135 +200,177 @@
     <a class="back-link" href="index.html">&larr; Back to reality</a>
   </header>
 
-  <canvas id="gameCanvas"></canvas>
+  <main>
+    <h1 class="title">Backyard Innings</h1>
 
-  <div class="hud hidden" id="hud">
-    <div class="stat"><div class="num" id="scoreNum">0</div><div class="label">caught</div></div>
-    <div class="stat"><div class="num" id="timeNum">20</div><div class="label">seconds</div></div>
-  </div>
+    <div class="scoreboard">
+      <div class="stat">
+        <div class="num" id="scoreNum">0</div>
+        <div class="label">score</div>
+      </div>
+      <div class="stat">
+        <div class="dots" id="strikeDots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="label">strikes</div>
+      </div>
+      <div class="stat">
+        <div class="dots" id="outDots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="label">outs</div>
+      </div>
+    </div>
 
-  <div class="intro" id="intro">
-    <h1>Catch the Code</h1>
-    <p>Click the falling characters before they hit the bottom. 20 seconds. That's it, that's the game.</p>
-    <button class="cta" id="startBtn">Start</button>
-  </div>
+    <div class="lane">
+      <div class="sweet-zone"></div>
+      <div class="plate">🏠</div>
+      <div class="ball" id="ball"></div>
+    </div>
 
-  <div class="final hidden" id="final">
-    <h1>Time's up</h1>
+    <div class="result-banner" id="banner"></div>
+
+    <div class="controls">
+      <button class="action primary" id="pitchBtn">Pitch</button>
+      <button class="action" id="swingBtn" disabled>Swing</button>
+    </div>
+  </main>
+
+  <div class="final" id="final">
+    <h1>Game over</h1>
     <div class="score" id="finalScore">0</div>
-    <p>caught. <span id="finalComment"></span></p>
-    <button class="cta" id="retryBtn">Run it back</button>
+    <p id="finalComment">final score.</p>
+    <button class="action primary" id="retryBtn">Play again</button>
   </div>
 
 <script>
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const hud = document.getElementById('hud');
-  const intro = document.getElementById('intro');
-  const finalScreen = document.getElementById('final');
+  const pitchBtn = document.getElementById('pitchBtn');
+  const swingBtn = document.getElementById('swingBtn');
+  const ball = document.getElementById('ball');
+  const banner = document.getElementById('banner');
   const scoreNum = document.getElementById('scoreNum');
-  const timeNum = document.getElementById('timeNum');
+  const strikeDots = document.querySelectorAll('#strikeDots .dot');
+  const outDots = document.querySelectorAll('#outDots .dot');
+  const finalScreen = document.getElementById('final');
   const finalScore = document.getElementById('finalScore');
   const finalComment = document.getElementById('finalComment');
+  const retryBtn = document.getElementById('retryBtn');
 
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  let score = 0, strikes = 0, outs = 0;
+  let pitchStart = 0, pitchDuration = 0, pitchActive = false, resolveTimer = null;
+
+  function updateDots(el, filled) {
+    el.forEach((d, i) => d.classList.toggle('filled', i < filled));
   }
-  window.addEventListener('resize', resize);
-  resize();
 
-  const chars = "アイウエオカキクケコサシスセソタチツテト01".split("");
-  let drops = [];
-  let score = 0;
-  let timeLeft = 20;
-  let running = false;
-  let spawnTimer = 0;
-  let animId, countdownId;
+  function showBanner(text, cls) {
+    banner.textContent = text;
+    banner.className = 'result-banner show' + (cls ? ' ' + cls : '');
+  }
 
-  function spawnDrop() {
-    drops.push({
-      x: Math.random() * (canvas.width - 30) + 15,
-      y: -20,
-      speed: 2 + Math.random() * 2.5,
-      char: chars[Math.floor(Math.random() * chars.length)],
-      caught: false,
-      r: 18
+  function resetBallVisual() {
+    ball.style.transition = 'none';
+    ball.style.left = '2%';
+    ball.classList.remove('flying');
+    void ball.offsetWidth;
+  }
+
+  function startPitch() {
+    pitchBtn.disabled = true;
+    swingBtn.disabled = false;
+    showBanner('', '');
+    resetBallVisual();
+
+    pitchDuration = 700 + Math.random() * 550;
+    pitchStart = performance.now();
+    pitchActive = true;
+
+    requestAnimationFrame(() => {
+      ball.style.transition = `left ${pitchDuration}ms linear`;
+      ball.classList.add('flying');
+      ball.style.left = '90%';
     });
+
+    resolveTimer = setTimeout(() => {
+      if (pitchActive) strikeOut('looking');
+    }, pitchDuration + 220);
   }
 
-  function loop() {
-    ctx.fillStyle = 'rgba(10,9,8,0.18)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    spawnTimer++;
-    if (spawnTimer > 22) { spawnDrop(); spawnTimer = 0; }
-
-    ctx.font = '22px monospace';
-    ctx.textAlign = 'center';
-    drops.forEach(d => {
-      if (d.caught) return;
-      d.y += d.speed;
-      ctx.fillStyle = '#3ddc4f';
-      ctx.fillText(d.char, d.x, d.y);
-    });
-    drops = drops.filter(d => d.y < canvas.height + 30 && !d.caught);
-
-    if (running) animId = requestAnimationFrame(loop);
+  function endAtBat(wasStrike) {
+    pitchActive = false;
+    clearTimeout(resolveTimer);
+    swingBtn.disabled = true;
+    setTimeout(() => { if (outs < 3) pitchBtn.disabled = false; }, 500);
   }
 
-  canvas.addEventListener('click', (e) => {
-    if (!running) return;
-    const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    for (const d of drops) {
-      if (d.caught) continue;
-      const dist = Math.hypot(d.x - cx, d.y - cy);
-      if (dist < d.r) {
-        d.caught = true;
-        score++;
-        scoreNum.textContent = score;
-        break;
-      }
+  function strikeOut(kind) {
+    endAtBat(true);
+    strikes++;
+    if (strikes >= 3) {
+      showBanner(kind === 'looking' ? 'strike three, looking.' : 'strike three.', 'bad');
+      outs++;
+      updateDots(outDots, outs);
+      strikes = 0;
+      updateDots(strikeDots, 0);
+      if (outs >= 3) return gameOver();
+    } else {
+      showBanner(kind === 'looking' ? 'strike, looking.' : 'strike.', 'bad');
+      updateDots(strikeDots, strikes);
     }
+  }
+
+  function foulBall() {
+    endAtBat(false);
+    showBanner('foul ball.', '');
+  }
+
+  function hit(kind, points) {
+    endAtBat(false);
+    score += points;
+    scoreNum.textContent = score;
+    showBanner(kind, 'hit');
+  }
+
+  pitchBtn.addEventListener('click', startPitch);
+
+  swingBtn.addEventListener('click', () => {
+    if (!pitchActive) return;
+    const now = performance.now();
+    const idealArrival = pitchStart + pitchDuration;
+    const diff = Math.abs(now - idealArrival);
+
+    if (diff <= 60) hit('HOME RUN!', 4);
+    else if (diff <= 150) hit('triple!', 3);
+    else if (diff <= 260) hit('double.', 2);
+    else if (diff <= 400) hit('single.', 1);
+    else if (diff <= pitchDuration * 0.9) foulBall();
+    else strikeOut('swinging');
   });
 
-  function startGame() {
-    intro.classList.add('hidden');
-    finalScreen.classList.add('hidden');
-    hud.classList.remove('hidden');
-    drops = [];
-    score = 0;
-    timeLeft = 20;
+  function gameOver() {
+    setTimeout(() => {
+      finalScore.textContent = score;
+      let comment = 'final score.';
+      if (score === 0) comment = "tough inning. everybody has one.";
+      else if (score < 6) comment = "you'll get 'em next time.";
+      else if (score < 14) comment = "solid at-bats.";
+      else comment = "backyard legend.";
+      finalComment.textContent = comment;
+      finalScreen.classList.add('show');
+    }, 700);
+  }
+
+  retryBtn.addEventListener('click', () => {
+    score = 0; strikes = 0; outs = 0;
     scoreNum.textContent = '0';
-    timeNum.textContent = '20';
-    running = true;
-    loop();
-    countdownId = setInterval(() => {
-      timeLeft--;
-      timeNum.textContent = timeLeft;
-      if (timeLeft <= 0) endGame();
-    }, 1000);
-  }
-
-  function endGame() {
-    running = false;
-    clearInterval(countdownId);
-    cancelAnimationFrame(animId);
-    hud.classList.add('hidden');
-    finalScore.textContent = score;
-    let comment = "not bad.";
-    if (score === 0) comment = "the code remains undefeated.";
-    else if (score < 8) comment = "you're still plugged in.";
-    else if (score < 18) comment = "getting the hang of this.";
-    else comment = "okay, Neo.";
-    finalComment.textContent = comment;
-    finalScreen.classList.remove('hidden');
-  }
-
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  document.getElementById('retryBtn').addEventListener('click', startGame);
+    updateDots(strikeDots, 0);
+    updateDots(outDots, 0);
+    finalScreen.classList.remove('show');
+    showBanner('', '');
+    resetBallVisual();
+    pitchBtn.disabled = false;
+    swingBtn.disabled = true;
+  });
 </script>
 </body>
 </html>
