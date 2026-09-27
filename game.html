@@ -162,6 +162,25 @@
   }
   .ball.flying { opacity: 1; }
 
+  #pitcherArm { transform: rotate(0deg); }
+  #pitcherArm.throwing {
+    animation: pitchThrow var(--pitch-time, 450ms) ease-out 1;
+  }
+  @keyframes pitchThrow {
+    0%   { transform: rotate(0deg); }
+    35%  { transform: rotate(-45deg); }
+    100% { transform: rotate(85deg); }
+  }
+
+  #batterBat { transform: rotate(0deg); }
+  #batterBat.swinging {
+    animation: batSwing 220ms cubic-bezier(.25,.7,.3,1) 1;
+  }
+  @keyframes batSwing {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(-125deg); }
+  }
+
   .result-banner {
     min-height: 30px;
     font-family: 'Instrument Serif', serif;
@@ -259,7 +278,9 @@
           <line x1="18" y1="17" x2="18" y2="40" />
           <line x1="18" y1="40" x2="8" y2="60" />
           <line x1="18" y1="40" x2="27" y2="52" />
-          <line x1="18" y1="22" x2="4" y2="10" stroke="#d21f27" />
+          <g id="pitcherArm" style="transform-origin: 18px 22px;">
+            <line x1="18" y1="22" x2="4" y2="10" stroke="#d21f27" />
+          </g>
           <line x1="18" y1="24" x2="29" y2="18" />
         </svg>
       </div>
@@ -271,7 +292,9 @@
           <line x1="18" y1="40" x2="28" y2="60" />
           <line x1="18" y1="22" x2="12" y2="28" />
           <line x1="18" y1="22" x2="12" y2="32" />
-          <line x1="12" y1="30" x2="0" y2="6" stroke="#d21f27" stroke-width="3.5" />
+          <g id="batterBat" style="transform-origin: 12px 30px;">
+            <line x1="12" y1="30" x2="0" y2="6" stroke="#d21f27" stroke-width="3.5" />
+          </g>
         </svg>
       </div>
       <div class="mound"></div>
@@ -309,6 +332,8 @@
   const finalScore = document.getElementById('finalScore');
   const finalComment = document.getElementById('finalComment');
   const retryBtn = document.getElementById('retryBtn');
+  const pitcherArm = document.getElementById('pitcherArm');
+  const batterBat = document.getElementById('batterBat');
 
   let score = 0, strikes = 0, outs = 0;
   let pitchStart = 0, pitchDuration = 0, pitchActive = false, resolveTimer = null;
@@ -329,15 +354,25 @@
     void ball.offsetWidth;
   }
 
+  function resetFigures() {
+    pitcherArm.classList.remove('throwing');
+    batterBat.classList.remove('swinging');
+    void pitcherArm.offsetWidth;
+  }
+
   function startPitch() {
     pitchBtn.disabled = true;
     swingBtn.disabled = false;
     showBanner('', '');
     resetBallVisual();
+    resetFigures();
 
     pitchDuration = 700 + Math.random() * 550;
     pitchStart = performance.now();
     pitchActive = true;
+
+    pitcherArm.style.setProperty('--pitch-time', `${pitchDuration * 0.55}ms`);
+    pitcherArm.classList.add('throwing');
 
     requestAnimationFrame(() => {
       ball.style.transition = `left ${pitchDuration}ms linear`;
@@ -389,6 +424,9 @@
 
   swingBtn.addEventListener('click', () => {
     if (!pitchActive) return;
+    batterBat.classList.remove('swinging');
+    void batterBat.offsetWidth;
+    batterBat.classList.add('swinging');
     const now = performance.now();
     const idealArrival = pitchStart + pitchDuration;
     const diff = Math.abs(now - idealArrival);
@@ -422,6 +460,7 @@
     finalScreen.classList.remove('show');
     showBanner('', '');
     resetBallVisual();
+    resetFigures();
     pitchBtn.disabled = false;
     swingBtn.disabled = true;
   });
