@@ -102,6 +102,55 @@
     overflow: hidden;
     background: repeating-linear-gradient(180deg, #16341c 0px, #16341c 22px, #123016 22px, #123016 44px);
   }
+  .sun {
+    position: absolute;
+    top: 10px; left: 14px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #f4d35e;
+    box-shadow: 0 0 14px 3px rgba(244,211,94,0.35);
+  }
+  .cloud {
+    position: absolute;
+    top: 16px; right: 16%;
+    width: 46px; height: 14px;
+    background: rgba(243,237,226,0.5);
+    border-radius: 999px;
+  }
+  .cloud::before {
+    content: "";
+    position: absolute;
+    top: -8px; left: 8px;
+    width: 24px; height: 18px;
+    background: rgba(243,237,226,0.5);
+    border-radius: 50%;
+  }
+  .fence {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 12px;
+    background: repeating-linear-gradient(90deg, #8a6339 0px, #8a6339 4px, transparent 4px, transparent 12px);
+    opacity: 0.55;
+  }
+  .diamond {
+    position: absolute;
+    left: 50%;
+    bottom: -74px;
+    width: 130px;
+    height: 130px;
+    background: #7c5636;
+    border: 2px solid rgba(0,0,0,0.2);
+    transform: translateX(-50%) rotate(45deg);
+    border-radius: 6px;
+    opacity: 0.9;
+  }
+  .diamond::before {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    background: repeating-linear-gradient(180deg, #1a3e20 0px, #1a3e20 10px, #163a1c 10px, #163a1c 20px);
+    border-radius: 4px;
+  }
   .figure {
     position: absolute;
     top: 14px;
@@ -158,7 +207,7 @@
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff, var(--red) 70%);
     opacity: 0;
-    transition: left linear, opacity 0.15s;
+    transition: opacity 0.15s;
   }
   .ball.flying { opacity: 1; }
 
@@ -272,8 +321,13 @@
     </div>
 
     <div class="field">
+      <div class="sun" aria-hidden="true"></div>
+      <div class="cloud" aria-hidden="true"></div>
+      <div class="fence" aria-hidden="true"></div>
+      <div class="diamond" aria-hidden="true"></div>
       <div class="figure pitcher">
         <svg viewBox="0 0 40 66" fill="none" stroke="#f3ede2" stroke-width="3" stroke-linecap="round">
+          <path d="M11 7 A8 8 0 0 1 25 7" fill="#d21f27" stroke="none" />
           <circle cx="18" cy="10" r="7" />
           <line x1="18" y1="17" x2="18" y2="40" />
           <line x1="18" y1="40" x2="8" y2="60" />
@@ -286,6 +340,7 @@
       </div>
       <div class="figure batter">
         <svg viewBox="0 0 40 66" fill="none" stroke="#f3ede2" stroke-width="3" stroke-linecap="round">
+          <path d="M11 7 A8 8 0 0 1 25 7" fill="#2196f3" stroke="none" />
           <circle cx="18" cy="10" r="7" />
           <line x1="18" y1="17" x2="18" y2="40" />
           <line x1="18" y1="40" x2="8" y2="60" />
@@ -348,8 +403,8 @@
   }
 
   function resetBallVisual() {
-    ball.style.transition = 'none';
     ball.style.left = '13%';
+    ball.style.bottom = '68px';
     ball.classList.remove('flying');
     void ball.offsetWidth;
   }
@@ -374,11 +429,21 @@
     pitcherArm.style.setProperty('--pitch-time', `${pitchDuration * 0.55}ms`);
     pitcherArm.classList.add('throwing');
 
-    requestAnimationFrame(() => {
-      ball.style.transition = `left ${pitchDuration}ms linear`;
-      ball.classList.add('flying');
-      ball.style.left = '84%';
-    });
+    ball.classList.add('flying');
+    const startX = 13, endX = 84;
+    const baseY = 68;
+    const arcHeight = 26 + Math.random() * 18;
+    const wobble = (Math.random() - 0.5) * 10;
+
+    function flyBall(now) {
+      const t = Math.min(1, (now - pitchStart) / pitchDuration);
+      const x = startX + (endX - startX) * t;
+      const y = baseY + Math.sin(Math.PI * t) * arcHeight + Math.sin(Math.PI * t * 2) * wobble * 0.3;
+      ball.style.left = x + '%';
+      ball.style.bottom = y + 'px';
+      if (t < 1 && pitchActive) requestAnimationFrame(flyBall);
+    }
+    requestAnimationFrame(flyBall);
 
     resolveTimer = setTimeout(() => {
       if (pitchActive) strikeOut('looking');
