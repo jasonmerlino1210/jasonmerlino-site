@@ -129,27 +129,26 @@
     margin: 0 0 16px;
   }
 
-  table.standings {
-    width: 100%;
-    border-collapse: collapse;
+  .my-standing {
+    display: flex;
+    align-items: baseline;
+    gap: 28px;
+    flex-wrap: wrap;
+    padding: 20px 22px;
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
     margin: 0 0 44px;
-    font-size: 14px;
   }
-  table.standings th, table.standings td {
-    text-align: left;
-    padding: 10px 8px;
-    border-bottom: 1px solid var(--hairline);
+  .my-standing .rank-big {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 40px;
+    color: var(--red);
   }
-  table.standings th {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  table.standings td.num, table.standings th.num { text-align: right; }
-  table.standings tr.me td.team { color: var(--red); }
-  .rank { color: var(--muted); width: 26px; }
+  .my-standing .stat { display: flex; flex-direction: column; gap: 2px; }
+  .my-standing .stat .val { font-size: 18px; }
+  .my-standing .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 
   .matchups {
     list-style: none;
@@ -230,20 +229,8 @@
 
       <section class="league-panel active" id="panel-sleeper">
         <p class="status-line" id="sleeperStatus">Loading live scores…</p>
-        <h2 class="section-title">Standings</h2>
-        <table class="standings" id="sleeperStandings">
-          <thead>
-            <tr>
-              <th class="rank"></th>
-              <th>Team</th>
-              <th class="num">W</th>
-              <th class="num">L</th>
-              <th class="num">PF</th>
-              <th class="num">PA</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <h2 class="section-title">Standing</h2>
+        <div class="my-standing" id="sleeperStanding"></div>
 
         <h2 class="section-title" id="matchupsTitle">This Week</h2>
         <ul class="matchups" id="sleeperMatchups"></ul>
@@ -285,7 +272,7 @@
   const MY_USERNAME = 'jasonmerlino';
 
   const statusEl = document.getElementById('sleeperStatus');
-  const standingsBody = document.querySelector('#sleeperStandings tbody');
+  const standingEl = document.getElementById('sleeperStanding');
   const matchupsList = document.getElementById('sleeperMatchups');
   const matchupsTitle = document.getElementById('matchupsTitle');
 
@@ -329,16 +316,18 @@
       });
       rows.sort((a, b) => b.wins - a.wins || b.fpts - a.fpts);
 
-      standingsBody.innerHTML = rows.map((row, i) => `
-        <tr class="${row.isMe ? 'me' : ''}">
-          <td class="rank">${i + 1}</td>
-          <td class="team">${row.name}</td>
-          <td class="num">${row.wins}</td>
-          <td class="num">${row.losses}</td>
-          <td class="num">${row.fpts.toFixed(1)}</td>
-          <td class="num">${row.fptsAgainst.toFixed(1)}</td>
-        </tr>
-      `).join('');
+      const myRank = rows.findIndex(r => r.isMe) + 1;
+      const me = rows.find(r => r.isMe);
+      if (me) {
+        standingEl.innerHTML = `
+          <span class="rank-big">#${myRank}<span style="font-size:18px;color:var(--muted)"> of ${rows.length}</span></span>
+          <div class="stat"><span class="val">${me.wins}-${me.losses}</span><span class="lbl">Record</span></div>
+          <div class="stat"><span class="val">${me.fpts.toFixed(1)}</span><span class="lbl">Points For</span></div>
+          <div class="stat"><span class="val">${me.fptsAgainst.toFixed(1)}</span><span class="lbl">Points Against</span></div>
+        `;
+      } else {
+        standingEl.textContent = "Couldn't find your team in this league.";
+      }
 
       // Try current week's matchups; fall back to the last scored week if nothing's posted yet
       let week = state.week || state.display_week || 1;
@@ -357,35 +346,38 @@
         byMatchupId[m.matchup_id].push(m);
       });
 
-      const matchupHtml = Object.values(byMatchupId).map(pair => {
-        if (pair.length < 2) return '';
-        const [a, b] = pair;
-        const rosterA = rostersById[a.roster_id];
-        const rosterB = rostersById[b.roster_id];
-        const nameA = teamNameFor(usersById[rosterA && rosterA.owner_id]);
-        const nameB = teamNameFor(usersById[rosterB && rosterB.owner_id]);
-        const meA = usersById[rosterA && rosterA.owner_id] && usersById[rosterA.owner_id].display_name === MY_USERNAME;
-        const meB = usersById[rosterB && rosterB.owner_id] && usersById[rosterB.owner_id].display_name === MY_USERNAME;
-        const ptsA = (a.points || 0).toFixed(1);
-        const ptsB = (b.points || 0).toFixed(1);
-        const aWinning = a.points > b.points;
-        const bWinning = b.points > a.points;
-        return `
+      const myRosterId = rosters.find(r => {
+        const u = usersById[r.owner_id];
+        return u && u.display_name === MY_USERNAME;
+      });
+      const myPair = Object.values(byMatchupId).find(pair =>
+        pair.some(m => myRosterId && m.roster_id === myRosterId.roster_id)
+      );
+
+      let matchupHtml = '';
+      if (myPair && myPair.length === 2) {
+        const mine = myPair.find(m => m.roster_id === myRosterId.roster_id);
+        const theirs = myPair.find(m => m.roster_id !== myRosterId.roster_id);
+        const myPts = (mine.points || 0).toFixed(1);
+        const theirPts = (theirs.points || 0).toFixed(1);
+        const meWinning = mine.points > theirs.points;
+        const oppWinning = theirs.points > mine.points;
+        matchupHtml = `
           <li class="matchup">
             <div class="side">
-              <span class="team-name ${meA ? 'me' : ''}">${nameA}</span>
-              <span class="pts ${aWinning ? 'winning' : ''}">${ptsA}</span>
+              <span class="team-name me">Jason's Team</span>
+              <span class="pts ${meWinning ? 'winning' : ''}">${myPts}</span>
             </div>
             <span class="vs">vs</span>
             <div class="side right">
-              <span class="pts ${bWinning ? 'winning' : ''}">${ptsB}</span>
-              <span class="team-name ${meB ? 'me' : ''}">${nameB}</span>
+              <span class="pts ${oppWinning ? 'winning' : ''}">${theirPts}</span>
+              <span class="team-name">Opponent</span>
             </div>
           </li>
         `;
-      }).join('');
+      }
 
-      matchupsList.innerHTML = matchupHtml || '<li class="matchup" style="justify-content:center;color:var(--muted)">No matchups posted for this week yet.</li>';
+      matchupsList.innerHTML = matchupHtml || '<li class="matchup" style="justify-content:center;color:var(--muted)">No matchup posted for this week yet.</li>';
 
       statusEl.textContent = `Live from Sleeper · updated ${new Date().toLocaleTimeString()}`;
     } catch (err) {
