@@ -93,6 +93,30 @@
   }
   .dot.filled { background: var(--red); border-color: var(--red); }
 
+  .bases-diamond {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    margin: 3px auto 0;
+  }
+  .base-marker {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: transparent;
+    border: 2px solid var(--muted);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+  .base-marker.second { top: 0; left: 50%; }
+  .base-marker.first { top: 50%; left: 100%; }
+  .base-marker.third { top: 50%; left: 0; }
+  .base-marker.home {
+    top: 100%; left: 50%;
+    background: var(--cream);
+    border-color: var(--cream);
+  }
+  .base-marker.occupied { background: var(--red); border-color: var(--red); }
+
   .field {
     position: relative;
     width: min(400px, 90vw);
@@ -102,41 +126,42 @@
     border: 1px solid var(--hairline);
     overflow: hidden;
     background:
-      linear-gradient(180deg, #9fd3e8 0px, #9fd3e8 62px, transparent 62px),
-      repeating-linear-gradient(180deg, #1c4522 62px, #1c4522 84px, #173a1d 84px, #173a1d 106px),
+      linear-gradient(180deg, #7fb3d9 0px, #a9d3ea 40px, transparent 40px),
+      repeating-linear-gradient(180deg, #1c4522 68px, #1c4522 84px, #173a1d 84px, #173a1d 106px),
       repeating-linear-gradient(180deg, #16341c 0px, #16341c 22px, #123016 22px, #123016 44px);
   }
-  .sun {
+  .stands {
     position: absolute;
-    top: 12px; left: 16px;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: #f4d35e;
-    box-shadow: 0 0 14px 3px rgba(244,211,94,0.35);
+    top: 40px; left: 0; right: 0;
+    height: 20px;
+    background: repeating-linear-gradient(90deg, #736a63 0px, #736a63 5px, #857a72 5px, #857a72 10px);
     z-index: 1;
   }
-  .cloud {
+  .light-tower {
     position: absolute;
-    top: 18px; right: 18%;
-    width: 46px; height: 14px;
-    background: rgba(255,255,255,0.7);
-    border-radius: 999px;
-    z-index: 1;
+    top: 4px;
+    width: 4px;
+    height: 34px;
+    background: #3a3733;
+    z-index: 2;
   }
-  .cloud::before {
+  .light-tower::before {
     content: "";
     position: absolute;
-    top: -8px; left: 8px;
-    width: 24px; height: 18px;
-    background: rgba(255,255,255,0.7);
-    border-radius: 50%;
+    top: -8px; left: -7px;
+    width: 18px; height: 10px;
+    background: #f4d35e;
+    box-shadow: 0 0 10px 2px rgba(244,211,94,0.5);
+    border-radius: 2px;
   }
-  .fence {
+  .light-tower.left { left: 22px; }
+  .light-tower.right { right: 22px; }
+  .wall {
     position: absolute;
-    top: 58px; left: 0; right: 0;
-    height: 10px;
-    background: repeating-linear-gradient(90deg, #8a6339 0px, #8a6339 4px, transparent 4px, transparent 11px);
-    opacity: 0.7;
+    top: 60px; left: 0; right: 0;
+    height: 9px;
+    background: #1c4522;
+    border-top: 2px solid #e8d24a;
     z-index: 1;
   }
   .infield {
@@ -325,12 +350,22 @@
         </div>
         <div class="label">outs</div>
       </div>
+      <div class="stat">
+        <div class="bases-diamond">
+          <div class="base-marker second" id="baseSecond"></div>
+          <div class="base-marker first" id="baseFirst"></div>
+          <div class="base-marker home"></div>
+          <div class="base-marker third" id="baseThird"></div>
+        </div>
+        <div class="label">bases</div>
+      </div>
     </div>
 
     <div class="field">
-      <div class="sun" aria-hidden="true"></div>
-      <div class="cloud" aria-hidden="true"></div>
-      <div class="fence" aria-hidden="true"></div>
+      <div class="stands" aria-hidden="true"></div>
+      <div class="light-tower left" aria-hidden="true"></div>
+      <div class="light-tower right" aria-hidden="true"></div>
+      <div class="wall" aria-hidden="true"></div>
       <div class="infield" aria-hidden="true"></div>
       <div class="mound" aria-hidden="true"></div>
       <div class="sweet-zone" aria-hidden="true"></div>
@@ -358,7 +393,9 @@
           <line x1="18" y1="22" x2="12" y2="28" />
           <line x1="18" y1="22" x2="12" y2="32" />
           <g id="batterBat" style="transform-origin: 12px 30px;">
-            <line x1="12" y1="30" x2="0" y2="6" stroke="#d21f27" stroke-width="3.5" />
+            <line x1="12" y1="30" x2="6" y2="18" stroke="#c69a5b" stroke-width="2.4" stroke-linecap="round" />
+            <line x1="6" y1="18" x2="-2" y2="3" stroke="#dcb583" stroke-width="5.2" stroke-linecap="round" />
+            <circle cx="12" cy="30" r="1.8" fill="#c69a5b" stroke="none" />
           </g>
         </svg>
       </div>
@@ -394,12 +431,41 @@
   const retryBtn = document.getElementById('retryBtn');
   const pitcherArm = document.getElementById('pitcherArm');
   const batterBat = document.getElementById('batterBat');
+  const baseFirst = document.getElementById('baseFirst');
+  const baseSecond = document.getElementById('baseSecond');
+  const baseThird = document.getElementById('baseThird');
 
   let score = 0, strikes = 0, outs = 0;
+  let bases = [false, false, false]; // 1st, 2nd, 3rd
   let pitchStart = 0, pitchDuration = 0, pitchActive = false, resolveTimer = null;
 
   function updateDots(el, filled) {
     el.forEach((d, i) => d.classList.toggle('filled', i < filled));
+  }
+
+  function updateBasesUI() {
+    baseFirst.classList.toggle('occupied', bases[0]);
+    baseSecond.classList.toggle('occupied', bases[1]);
+    baseThird.classList.toggle('occupied', bases[2]);
+  }
+
+  // basesAdvance: 1=single, 2=double, 3=triple, 4=home run.
+  // Existing runners move up that many bases; anyone pushed past 3rd scores.
+  // Returns how many runs scored on the play.
+  function advanceRunners(basesAdvance) {
+    const newBases = [false, false, false];
+    let runs = 0;
+    for (let i = 0; i < 3; i++) {
+      if (!bases[i]) continue;
+      const newPos = (i + 1) + basesAdvance;
+      if (newPos >= 4) runs++;
+      else newBases[newPos - 1] = true;
+    }
+    if (basesAdvance >= 4) runs++;
+    else newBases[basesAdvance - 1] = true;
+    bases = newBases;
+    updateBasesUI();
+    return runs;
   }
 
   function showBanner(text, cls) {
@@ -521,11 +587,13 @@
     });
   }
 
-  function hit(kind, points) {
+  function hit(kind, basesAdvance) {
     endAtBat(1000);
-    score += points;
+    const runs = advanceRunners(basesAdvance);
+    score += runs;
     scoreNum.textContent = score;
-    showBanner(kind, 'hit');
+    const runText = runs === 0 ? '' : runs === 1 ? ' 1 run scores!' : ` ${runs} runs score!`;
+    showBanner(kind + runText, 'hit');
 
     const spread = (Math.random() - 0.5) * 50;
     const targets = {
@@ -534,7 +602,7 @@
       3: { toY: 232, toScale: 0.42, duration: 850, fadeFrom: 0.72 },
       4: { toY: 340, toScale: 0.22, duration: 950, fadeFrom: 0.6 }
     };
-    const t = targets[points];
+    const t = targets[basesAdvance];
     animateHitBall({
       toY: t.toY,
       toXPercent: 50 + spread,
@@ -578,9 +646,11 @@
 
   retryBtn.addEventListener('click', () => {
     score = 0; strikes = 0; outs = 0;
+    bases = [false, false, false];
     scoreNum.textContent = '0';
     updateDots(strikeDots, 0);
     updateDots(outDots, 0);
+    updateBasesUI();
     finalScreen.classList.remove('show');
     showBanner('', '');
     resetBallVisual();
