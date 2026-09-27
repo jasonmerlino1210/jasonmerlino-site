@@ -355,7 +355,7 @@
       repeating-linear-gradient(90deg,
         #7a1015 0px, #8f171d 14px, #6c0e12 28px, #9c1c22 42px);
     box-shadow: inset 0 0 80px 10px rgba(0,0,0,0.55);
-    transition: transform 1.1s cubic-bezier(0.7, 0, 0.3, 1);
+    transition: transform 2.2s cubic-bezier(0.65, 0, 0.35, 1);
     z-index: 3;
   }
   .curtain-panel::after {
@@ -376,9 +376,20 @@
     background: repeating-linear-gradient(90deg, #6c0e12 0px, #6c0e12 20px, #8f171d 20px, #8f171d 40px);
     box-shadow: 0 6px 14px rgba(0,0,0,0.5);
     z-index: 4;
-    transition: opacity 0.4s ease 0.6s;
+    transition: opacity 0.5s ease 1s;
   }
   .choice-overlay.opening .curtain-valance { opacity: 0; }
+
+  .cinematic-fade {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.9s ease;
+  }
+  .choice-overlay.fading .cinematic-fade { opacity: 1; }
 
   .rope-wrap {
     position: relative;
@@ -399,16 +410,26 @@
   }
   .rope-wrap.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
   .choice-overlay.opening .rope-wrap { opacity: 0; pointer-events: none; }
+  .rope-wrap.pulling { pointer-events: none; transition: opacity 0.3s ease 0.35s; }
   .rope-cord {
     width: 4px;
     height: 130px;
     background: linear-gradient(90deg, #c9a24a, #f4d98a, #c9a24a);
     border-radius: 3px;
     box-shadow: 0 0 12px rgba(244,217,138,0.25);
+    transform-origin: top;
     transition: transform 0.35s ease;
   }
   .rope-wrap:hover .rope-cord,
   .rope-wrap:active .rope-cord { transform: scaleY(1.06); }
+  .rope-wrap.pulling .rope-cord {
+    animation: ropeTug 0.5s ease-in forwards;
+  }
+  @keyframes ropeTug {
+    0%   { transform: scaleY(1); }
+    40%  { transform: scaleY(1.35); }
+    100% { transform: scaleY(1.6) translateY(40px); }
+  }
   .rope-tassel {
     width: 26px;
     height: 30px;
@@ -491,6 +512,7 @@
         <div class="rope-tassel"></div>
         <div class="rope-label">pull</div>
       </button>
+      <div class="cinematic-fade" aria-hidden="true"></div>
     </div>
 
     <footer>
@@ -509,7 +531,7 @@
     const canvas = document.getElementById('choiceRain');
     const ctx = canvas.getContext('2d');
     const chars = "JASONMERLINO".split("");
-    let drops = [], animId, ropeTimer, navTimer;
+    let drops = [], animId, ropeTimer, navTimer, pullTimers = [];
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -541,17 +563,28 @@
     }
 
     function pullRope() {
-      overlay.classList.add('opening');
-      rope.classList.remove('show');
-      // curtains slide open, but the falling code stays lit behind them
-      navTimer = setTimeout(() => { window.location.href = 'game.html'; }, 1600);
+      let t1, t2, t3;
+      // beat 1: a hand-tug on the rope before anything moves
+      rope.classList.add('pulling');
+      t1 = setTimeout(() => {
+        rope.classList.remove('show', 'pulling');
+        overlay.classList.add('opening'); // beat 2: curtains sweep open, slowly
+      }, 480);
+      // beat 3: the code keeps running, revealed and lit up, for a while
+      t2 = setTimeout(() => {
+        overlay.classList.add('fading'); // beat 4: cinematic fade to black
+      }, 4200);
+      t3 = setTimeout(() => { window.location.href = 'game.html'; }, 5100);
+      navTimer = t3;
+      pullTimers = [t1, t2, t3];
     }
 
     function closeOverlay() {
-      overlay.classList.remove('active', 'opening');
-      rope.classList.remove('show');
+      overlay.classList.remove('active', 'opening', 'fading');
+      rope.classList.remove('show', 'pulling');
       clearTimeout(ropeTimer);
       clearTimeout(navTimer);
+      (pullTimers || []).forEach(clearTimeout);
       cancelAnimationFrame(animId);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
