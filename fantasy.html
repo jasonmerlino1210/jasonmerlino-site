@@ -150,29 +150,46 @@
   .my-standing .stat .val { font-size: 18px; }
   .my-standing .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 
-  .matchups {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 10px;
+  .matchup-card {
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
   }
-  .matchup {
+  .matchup-total {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 14px;
-    padding: 14px 18px;
-    background: var(--panel);
-    border: 1px solid var(--hairline);
-    border-radius: 10px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--panel-2);
   }
-  .matchup .side { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-  .matchup .side.right { justify-content: flex-end; text-align: right; }
-  .matchup .pts { font-size: 20px; font-weight: 500; min-width: 3ch; }
-  .matchup .pts.winning { color: var(--green); }
-  .matchup .vs { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .matchup .team-name.me { color: var(--red); }
+  .matchup-total .side { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .matchup-total .side.right { justify-content: flex-end; text-align: right; }
+  .matchup-total .pts { font-size: 26px; font-weight: 500; min-width: 3.5ch; }
+  .matchup-total .pts.winning { color: var(--green); }
+  .matchup-total .vs { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .matchup-total .team-name { font-size: 14px; }
+  .matchup-total .team-name.me { color: var(--red); }
+
+  .player-rows { list-style: none; margin: 0; padding: 8px; }
+  .player-row {
+    display: grid;
+    grid-template-columns: 1fr 44px 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  .player-row:hover { background: rgba(243,237,226,0.03); }
+  .prow-side { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+  .prow-side.right { justify-content: flex-end; text-align: right; }
+  .prow-name { color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow-score { font-size: 14px; font-weight: 500; min-width: 3ch; color: var(--muted); }
+  .prow-score.winning { color: var(--green); }
+  .prow-slot { text-align: center; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
   .placeholder {
     border: 1px dashed var(--hairline);
@@ -233,7 +250,7 @@
         <div class="my-standing" id="sleeperStanding"></div>
 
         <h2 class="section-title" id="matchupsTitle">This Week</h2>
-        <ul class="matchups" id="sleeperMatchups"></ul>
+        <div class="matchup-card" id="sleeperMatchups"></div>
       </section>
 
       <section class="league-panel" id="panel-espn1">
@@ -276,6 +293,10 @@
   const matchupsList = document.getElementById('sleeperMatchups');
   const matchupsTitle = document.getElementById('matchupsTitle');
 
+  const REFRESH_MS = 30000;
+  let pollTimer = null;
+  let cachedContext = null; // { myRosterId, oppRosterId, week, slotLabels, playersMap }
+
   async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Request failed: ' + url);
@@ -287,19 +308,112 @@
     return (user && user.display_name) || 'Unknown Team';
   }
 
+  // The full player directory is ~5MB and barely changes, so cache it in
+  // localStorage for a day instead of re-downloading it on every visit.
+  async function loadPlayersMap() {
+    const CACHE_KEY = 'sleeper_players_cache_v1';
+    const CACHE_TTL = 1000 * 60 * 60 * 20;
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+    } catch (e) {}
+    const data = await fetchJSON('https://api.sleeper.app/v1/players/nfl');
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (e) {}
+    return data;
+  }
+
+  function playerLabel(playersMap, id) {
+    if (id === undefined || id === null) return { name: 'Empty', sub: '' };
+    const p = playersMap[id];
+    if (!p) return { name: id, sub: '' };
+    const name = p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || id;
+    const sub = [p.position, p.team].filter(Boolean).join(' · ');
+    return { name, sub };
+  }
+
+  function renderPlayerRows(slotLabels, myStarters, myPts, oppStarters, oppPts, playersMap) {
+    return slotLabels.map((slot, i) => {
+      const myId = myStarters[i];
+      const oppId = oppStarters[i];
+      const myScore = myPts[i] || 0;
+      const oppScore = oppPts[i] || 0;
+      const mine = playerLabel(playersMap, myId);
+      const opp = playerLabel(playersMap, oppId);
+      return `
+        <li class="player-row">
+          <div class="prow-side">
+            <span class="prow-name" title="${mine.name}${mine.sub ? ' — ' + mine.sub : ''}">${mine.name}</span>
+            <span class="prow-score ${myScore > oppScore ? 'winning' : ''}">${myScore.toFixed(1)}</span>
+          </div>
+          <span class="prow-slot">${slot}</span>
+          <div class="prow-side right">
+            <span class="prow-score ${oppScore > myScore ? 'winning' : ''}">${oppScore.toFixed(1)}</span>
+            <span class="prow-name" title="${opp.name}${opp.sub ? ' — ' + opp.sub : ''}">${opp.name}</span>
+          </div>
+        </li>
+      `;
+    }).join('');
+  }
+
+  async function refreshMatchup() {
+    if (!cachedContext) return;
+    const { myRosterId, oppRosterId, week, slotLabels, playersMap } = cachedContext;
+    try {
+      const matchups = await fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/matchups/${week}`);
+      const mine = matchups.find(m => m.roster_id === myRosterId);
+      const theirs = matchups.find(m => m.roster_id === oppRosterId);
+      if (!mine || !theirs) return;
+
+      const myPts = (mine.points || 0);
+      const theirPts = (theirs.points || 0);
+      const meWinning = myPts > theirPts;
+      const oppWinning = theirPts > myPts;
+
+      const rowsHtml = renderPlayerRows(
+        slotLabels,
+        mine.starters || [],
+        mine.starters_points || [],
+        theirs.starters || [],
+        theirs.starters_points || [],
+        playersMap
+      );
+
+      matchupsList.innerHTML = `
+        <div class="matchup-total">
+          <div class="side">
+            <span class="team-name me">Jason's Team</span>
+            <span class="pts ${meWinning ? 'winning' : ''}">${myPts.toFixed(1)}</span>
+          </div>
+          <span class="vs">vs</span>
+          <div class="side right">
+            <span class="pts ${oppWinning ? 'winning' : ''}">${theirPts.toFixed(1)}</span>
+            <span class="team-name">Opponent</span>
+          </div>
+        </div>
+        <ul class="player-rows">${rowsHtml}</ul>
+      `;
+
+      statusEl.textContent = `Live from Sleeper · updated ${new Date().toLocaleTimeString()}`;
+      statusEl.classList.remove('error');
+    } catch (err) {
+      console.error(err);
+      // keep showing the last good render; just note the miss
+      statusEl.textContent = `Couldn't refresh just now — last update ${new Date().toLocaleTimeString()}`;
+    }
+  }
+
   async function loadSleeper() {
     try {
-      const [state, users, rosters] = await Promise.all([
+      const [state, users, rosters, league, playersMap] = await Promise.all([
         fetchJSON('https://api.sleeper.app/v1/state/nfl'),
         fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/users`),
-        fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/rosters`)
+        fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/rosters`),
+        fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}`),
+        loadPlayersMap()
       ]);
 
       const usersById = {};
       users.forEach(u => { usersById[u.user_id] = u; });
-
-      const rostersById = {};
-      rosters.forEach(r => { rostersById[r.roster_id] = r; });
 
       // Build standings rows
       const rows = rosters.map(r => {
@@ -337,7 +451,6 @@
         week -= 1;
         matchups = await fetchJSON(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/matchups/${week}`);
       }
-
       matchupsTitle.textContent = `Week ${week}`;
 
       const byMatchupId = {};
@@ -346,40 +459,41 @@
         byMatchupId[m.matchup_id].push(m);
       });
 
-      const myRosterId = rosters.find(r => {
+      const myRoster = rosters.find(r => {
         const u = usersById[r.owner_id];
         return u && u.display_name === MY_USERNAME;
       });
-      const myPair = Object.values(byMatchupId).find(pair =>
-        pair.some(m => myRosterId && m.roster_id === myRosterId.roster_id)
+      const myPair = myRoster && Object.values(byMatchupId).find(pair =>
+        pair.some(m => m.roster_id === myRoster.roster_id)
       );
 
-      let matchupHtml = '';
       if (myPair && myPair.length === 2) {
-        const mine = myPair.find(m => m.roster_id === myRosterId.roster_id);
-        const theirs = myPair.find(m => m.roster_id !== myRosterId.roster_id);
-        const myPts = (mine.points || 0).toFixed(1);
-        const theirPts = (theirs.points || 0).toFixed(1);
-        const meWinning = mine.points > theirs.points;
-        const oppWinning = theirs.points > mine.points;
-        matchupHtml = `
-          <li class="matchup">
-            <div class="side">
-              <span class="team-name me">Jason's Team</span>
-              <span class="pts ${meWinning ? 'winning' : ''}">${myPts}</span>
-            </div>
-            <span class="vs">vs</span>
-            <div class="side right">
-              <span class="pts ${oppWinning ? 'winning' : ''}">${theirPts}</span>
-              <span class="team-name">Opponent</span>
-            </div>
-          </li>
-        `;
+        const mine = myPair.find(m => m.roster_id === myRoster.roster_id);
+        const theirs = myPair.find(m => m.roster_id !== myRoster.roster_id);
+
+        // Starter slot labels come from the league's roster_positions, in
+        // order, skipping bench/taxi/IR spots (those aren't in `starters`).
+        const slotLabels = (league.roster_positions || [])
+          .filter(p => p !== 'BN' && p !== 'TAXI' && p !== 'IR');
+
+        cachedContext = {
+          myRosterId: mine.roster_id,
+          oppRosterId: theirs.roster_id,
+          week,
+          slotLabels,
+          playersMap
+        };
+
+        await refreshMatchup();
+
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(() => {
+          if (!document.hidden) refreshMatchup();
+        }, REFRESH_MS);
+      } else {
+        matchupsList.innerHTML = '<div class="matchup-total" style="justify-content:center;color:var(--muted)">No matchup posted for this week yet.</div>';
+        statusEl.textContent = `Live from Sleeper · updated ${new Date().toLocaleTimeString()}`;
       }
-
-      matchupsList.innerHTML = matchupHtml || '<li class="matchup" style="justify-content:center;color:var(--muted)">No matchup posted for this week yet.</li>';
-
-      statusEl.textContent = `Live from Sleeper · updated ${new Date().toLocaleTimeString()}`;
     } catch (err) {
       statusEl.textContent = 'Could not load Sleeper scores right now. Try refreshing.';
       statusEl.classList.add('error');
