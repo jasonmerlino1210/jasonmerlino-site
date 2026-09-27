@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Catch the Code — Jason Merlino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0908;
+    --red: #d21f27;
+    --green: #3ddc4f;
+    --cream: #f3ede2;
+    --muted: #948d80;
+    --hairline: rgba(243,237,226,0.14);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--cream);
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  a { color: inherit; }
+
+  header {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px clamp(20px, 5vw, 48px);
+    z-index: 20;
+  }
+  .mark {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 24px;
+    text-decoration: none;
+  }
+  .back-link {
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 3px;
+  }
+  .back-link:hover { color: var(--red); border-color: var(--red); }
+
+  #gameCanvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+  }
+
+  .hud {
+    position: fixed;
+    top: calc(80px + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    z-index: 15;
+    pointer-events: none;
+  }
+  .hud .stat { text-align: center; }
+  .hud .stat .num {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 40px;
+    color: var(--green);
+    line-height: 1;
+  }
+  .hud .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .intro, .final {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(10,9,8,0.88);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+  }
+  .intro h1, .final h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(36px, 6vw, 56px);
+    color: var(--red);
+    margin: 0 0 16px;
+  }
+  .intro p, .final p {
+    color: var(--muted);
+    max-width: 40ch;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 30px;
+  }
+  .final .score {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 64px;
+    color: var(--green);
+    margin: 0 0 8px;
+  }
+  button.cta {
+    background: var(--red);
+    color: var(--cream);
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 14px 34px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  button.cta:hover { opacity: 0.88; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <header>
+    <a class="mark" href="index.html">JM</a>
+    <a class="back-link" href="index.html">&larr; Back to reality</a>
+  </header>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="hud hidden" id="hud">
+    <div class="stat"><div class="num" id="scoreNum">0</div><div class="label">caught</div></div>
+    <div class="stat"><div class="num" id="timeNum">20</div><div class="label">seconds</div></div>
+  </div>
+
+  <div class="intro" id="intro">
+    <h1>Catch the Code</h1>
+    <p>Click the falling characters before they hit the bottom. 20 seconds. That's it, that's the game.</p>
+    <button class="cta" id="startBtn">Start</button>
+  </div>
+
+  <div class="final hidden" id="final">
+    <h1>Time's up</h1>
+    <div class="score" id="finalScore">0</div>
+    <p>caught. <span id="finalComment"></span></p>
+    <button class="cta" id="retryBtn">Run it back</button>
+  </div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const hud = document.getElementById('hud');
+  const intro = document.getElementById('intro');
+  const finalScreen = document.getElementById('final');
+  const scoreNum = document.getElementById('scoreNum');
+  const timeNum = document.getElementById('timeNum');
+  const finalScore = document.getElementById('finalScore');
+  const finalComment = document.getElementById('finalComment');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const chars = "アイウエオカキクケコサシスセソタチツテト01".split("");
+  let drops = [];
+  let score = 0;
+  let timeLeft = 20;
+  let running = false;
+  let spawnTimer = 0;
+  let animId, countdownId;
+
+  function spawnDrop() {
+    drops.push({
+      x: Math.random() * (canvas.width - 30) + 15,
+      y: -20,
+      speed: 2 + Math.random() * 2.5,
+      char: chars[Math.floor(Math.random() * chars.length)],
+      caught: false,
+      r: 18
+    });
+  }
+
+  function loop() {
+    ctx.fillStyle = 'rgba(10,9,8,0.18)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    spawnTimer++;
+    if (spawnTimer > 22) { spawnDrop(); spawnTimer = 0; }
+
+    ctx.font = '22px monospace';
+    ctx.textAlign = 'center';
+    drops.forEach(d => {
+      if (d.caught) return;
+      d.y += d.speed;
+      ctx.fillStyle = '#3ddc4f';
+      ctx.fillText(d.char, d.x, d.y);
+    });
+    drops = drops.filter(d => d.y < canvas.height + 30 && !d.caught);
+
+    if (running) animId = requestAnimationFrame(loop);
+  }
+
+  canvas.addEventListener('click', (e) => {
+    if (!running) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    for (const d of drops) {
+      if (d.caught) continue;
+      const dist = Math.hypot(d.x - cx, d.y - cy);
+      if (dist < d.r) {
+        d.caught = true;
+        score++;
+        scoreNum.textContent = score;
+        break;
+      }
+    }
+  });
+
+  function startGame() {
+    intro.classList.add('hidden');
+    finalScreen.classList.add('hidden');
+    hud.classList.remove('hidden');
+    drops = [];
+    score = 0;
+    timeLeft = 20;
+    scoreNum.textContent = '0';
+    timeNum.textContent = '20';
+    running = true;
+    loop();
+    countdownId = setInterval(() => {
+      timeLeft--;
+      timeNum.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(countdownId);
+    cancelAnimationFrame(animId);
+    hud.classList.add('hidden');
+    finalScore.textContent = score;
+    let comment = "not bad.";
+    if (score === 0) comment = "the code remains undefeated.";
+    else if (score < 8) comment = "you're still plugged in.";
+    else if (score < 18) comment = "getting the hang of this.";
+    else comment = "okay, Neo.";
+    finalComment.textContent = comment;
+    finalScreen.classList.remove('hidden');
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

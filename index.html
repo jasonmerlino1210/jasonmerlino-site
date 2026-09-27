@@ -253,6 +253,104 @@
       to { opacity: 1; transform: translateY(0); }
     }
   }
+
+  /* Choice section */
+  .choice-section {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px) clamp(60px, 8vw, 100px);
+    border-top: 1px solid var(--hairline);
+    text-align: center;
+  }
+  .choice-section .choice-intro {
+    padding-top: 48px;
+  }
+  .choice-section h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 30px;
+    margin: 0 0 12px;
+  }
+  .choice-section > .choice-intro > p {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 44ch;
+    margin: 0 auto 28px;
+  }
+  .choice-trigger {
+    background: transparent;
+    border: 1px solid var(--hairline);
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 14px 32px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.3s, color 0.3s;
+  }
+  .choice-trigger:hover { border-color: var(--red); color: var(--red); }
+
+  .choice-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .choice-overlay.active { display: flex; }
+  .choice-overlay canvas {
+    position: absolute;
+    inset: 0;
+  }
+  .choice-overlay .close-x {
+    position: absolute;
+    top: calc(24px + env(safe-area-inset-top, 0px));
+    right: 24px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 26px;
+    cursor: pointer;
+    z-index: 5;
+  }
+  .choice-overlay .close-x:hover { color: var(--red); }
+
+  .pills {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 60px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    pointer-events: none;
+  }
+  .pills.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .pill-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .pill-shape {
+    width: 34px;
+    height: 90px;
+    border-radius: 999px;
+    box-shadow: 0 0 24px 4px currentColor;
+    transition: transform 0.25s;
+  }
+  .pill-option:hover .pill-shape { transform: scale(1.08) translateY(-4px); }
+  .pill-shape.blue { background: linear-gradient(180deg, #6ec6ff, #2196f3); color: #2196f3; }
+  .pill-shape.red { background: linear-gradient(180deg, #ff6b6f, var(--red)); color: var(--red); }
+  .pill-name { font-size: 15px; color: var(--cream); }
+  .pill-sub { font-size: 12px; color: var(--muted); max-width: 20ch; text-align: center; }
 </style>
 </head>
 <body>
@@ -261,8 +359,8 @@
     <header>
       <a class="mark" href="#top">JM</a>
       <nav>
-        <a href="#top" class="active">Home</a>
-        <a href="#news">News</a>
+        <a href="index.html" class="active">Home</a>
+        <a href="news.html">News</a>
         <a href="#photos">Photos</a>
       </nav>
     </header>
@@ -274,7 +372,7 @@
         <div class="hero-rule"></div>
         <p class="tagline">A running log of what I'm into — a rotating cast of hobbies, whatever's on the grill, and the occasional questionable decision. Stop by, stay a while.</p>
         <div class="hero-links">
-          <a href="#news">Latest news</a>
+          <a href="news.html">Latest news</a>
           <a href="#photos">Photo log</a>
         </div>
       </div>
@@ -290,7 +388,7 @@
       <div id="news">
         <h2>News</h2>
         <p>Short updates — whatever's happening this week, a rant here and there, my best (worst) opinions. Nothing formal, just what's on my mind.</p>
-        <a href="#news">Read the latest</a>
+        <a href="news.html">Read the latest</a>
       </div>
       <div id="photos">
         <h2>Photos</h2>
@@ -299,11 +397,89 @@
       </div>
     </section>
 
+    <section class="choice-section">
+      <div class="choice-intro">
+        <h2>There's one more thing here</h2>
+        <p>Not everything on this site is where it looks like it is.</p>
+        <button class="choice-trigger" id="choiceTrigger">follow the white rabbit</button>
+      </div>
+    </section>
+
+    <div class="choice-overlay" id="choiceOverlay">
+      <button class="close-x" id="choiceClose" aria-label="Close">&times;</button>
+      <canvas id="choiceRain"></canvas>
+      <div class="pills" id="choicePills">
+        <a class="pill-option" href="news.html">
+          <div class="pill-shape blue"></div>
+          <div class="pill-name">Blue</div>
+          <div class="pill-sub">stay on script</div>
+        </a>
+        <a class="pill-option" href="game.html">
+          <div class="pill-shape red"></div>
+          <div class="pill-name">Red</div>
+          <div class="pill-sub">see how deep it goes</div>
+        </a>
+      </div>
+    </div>
+
     <footer>
       <div class="stripe" aria-hidden="true"></div>
       <p>© 2026 Jason Merlino</p>
       <p>jasonmerlino.com</p>
     </footer>
   </div>
+
+<script>
+  (function() {
+    const trigger = document.getElementById('choiceTrigger');
+    const overlay = document.getElementById('choiceOverlay');
+    const closeBtn = document.getElementById('choiceClose');
+    const pills = document.getElementById('choicePills');
+    const canvas = document.getElementById('choiceRain');
+    const ctx = canvas.getContext('2d');
+    const chars = "アイウエオカキクケコサシスセソタチツテト01".split("");
+    let drops = [], animId, pillsTimer;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const cols = Math.floor(canvas.width / 18);
+      drops = new Array(cols).fill(0);
+    }
+
+    function drawRain() {
+      ctx.fillStyle = 'rgba(10,9,8,0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#3ddc4f';
+      ctx.font = '15px monospace';
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * 18, drops[i] * 18);
+        if (drops[i] * 18 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+      animId = requestAnimationFrame(drawRain);
+    }
+
+    function openOverlay() {
+      resize();
+      overlay.classList.add('active');
+      drawRain();
+      pillsTimer = setTimeout(() => pills.classList.add('show'), 1300);
+    }
+
+    function closeOverlay() {
+      overlay.classList.remove('active');
+      pills.classList.remove('show');
+      clearTimeout(pillsTimer);
+      cancelAnimationFrame(animId);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    trigger.addEventListener('click', openOverlay);
+    closeBtn.addEventListener('click', closeOverlay);
+    window.addEventListener('resize', () => { if (overlay.classList.contains('active')) resize(); });
+  })();
+</script>
 </body>
 </html>

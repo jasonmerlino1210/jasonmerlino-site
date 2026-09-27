@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>News — Jason Merlino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0908;
+    --panel: #121110;
+    --panel-2: #17140f;
+    --red: #d21f27;
+    --red-dim: #5c1013;
+    --cream: #f3ede2;
+    --muted: #948d80;
+    --hairline: rgba(243,237,226,0.14);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--cream);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+
+  .pinfield {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: repeating-linear-gradient(
+      118deg,
+      transparent 0px, transparent 58px,
+      rgba(210,31,39,0.05) 58px, rgba(210,31,39,0.05) 60px,
+      transparent 60px, transparent 140px
+    );
+  }
+  .wrap { position: relative; z-index: 1; }
+
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 26px clamp(20px, 5vw, 64px);
+    background: rgba(10,9,8,0.86);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--hairline);
+    z-index: 10;
+  }
+  .mark {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 26px;
+    text-decoration: none;
+  }
+  nav { display: flex; gap: clamp(20px, 4vw, 40px); }
+  nav a { text-decoration: none; font-size: 15px; color: var(--cream); position: relative; padding-bottom: 4px; }
+  nav a.active { color: var(--red); }
+  nav a.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 1px; background: var(--red);
+  }
+
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: clamp(48px, 8vw, 90px) clamp(20px, 5vw, 64px) clamp(80px, 10vw, 120px);
+  }
+  .page-kicker { font-size: 14px; color: var(--muted); margin: 0 0 14px; }
+  h1.page-title {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(44px, 7vw, 64px);
+    margin: 0 0 44px;
+    color: var(--red);
+  }
+
+  .article-list { list-style: none; margin: 0; padding: 0; }
+  .article-list li {
+    border-top: 1px solid var(--hairline);
+    padding: 30px 0;
+  }
+  .article-list li:last-child { border-bottom: 1px solid var(--hairline); }
+  .article-date { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .article-title {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(24px, 3.4vw, 30px);
+    margin: 0 0 10px;
+  }
+  .article-title a { text-decoration: none; }
+  .article-title a:hover { color: var(--red); }
+  .article-excerpt { font-size: 15px; line-height: 1.65; color: var(--cream); max-width: 60ch; margin: 0 0 12px; }
+  .read-link { font-size: 14px; text-decoration: none; border-bottom: 1px solid var(--hairline); padding-bottom: 3px; }
+  .read-link:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-note {
+    border-top: 1px solid var(--hairline);
+    padding-top: 30px;
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 50ch;
+  }
+
+  footer {
+    border-top: 1px solid var(--hairline);
+    padding: 30px clamp(20px, 5vw, 64px) calc(30px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  footer .stripe {
+    height: 3px;
+    width: 100%;
+    background: repeating-linear-gradient(90deg, var(--red) 0px, var(--red) 26px, transparent 26px, transparent 40px);
+    opacity: 0.5;
+    margin-bottom: 26px;
+  }
+  footer p { margin: 0; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="pinfield" aria-hidden="true"></div>
+  <div class="wrap">
+    <header>
+      <a class="mark" href="index.html">JM</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="news.html" class="active">News</a>
+        <a href="index.html#photos">Photos</a>
+      </nav>
+    </header>
+
+    <main>
+      <p class="page-kicker">Whatever's on my mind</p>
+      <h1 class="page-title">News</h1>
+
+      <ul class="article-list">
+        <li>
+          <p class="article-date">Sample entry — replace or delete this</p>
+          <h2 class="article-title"><a href="article-hello-world.html">This is where a headline goes</a></h2>
+          <p class="article-excerpt">A short one- or two-sentence teaser of what the post is actually about goes here — just enough to get someone to click.</p>
+          <a class="read-link" href="article-hello-world.html">Read the full post</a>
+        </li>
+      </ul>
+
+      <!--
+        HOW TO ADD A NEW ARTICLE:
+        1. Duplicate article-hello-world.html, rename it (e.g. article-my-new-post.html)
+        2. Edit its title and body text
+        3. Copy one <li> block above, update the date/title/excerpt/links to match
+        4. Upload both files to GitHub
+      -->
+    </main>
+
+    <footer>
+      <div class="stripe" aria-hidden="true"></div>
+      <p>© 2026 Jason Merlino</p>
+      <p>jasonmerlino.com</p>
+    </footer>
+  </div>
+</body>
+</html>
