@@ -298,12 +298,10 @@
     display: none;
     align-items: center;
     justify-content: center;
+    background: #050403;
+    overflow: hidden;
   }
   .choice-overlay.active { display: flex; }
-  .choice-overlay canvas {
-    position: absolute;
-    inset: 0;
-  }
   .choice-overlay .close-x {
     position: absolute;
     top: calc(24px + env(safe-area-inset-top, 0px));
@@ -313,44 +311,94 @@
     color: var(--muted);
     font-size: 26px;
     cursor: pointer;
-    z-index: 5;
+    z-index: 20;
   }
   .choice-overlay .close-x:hover { color: var(--red); }
 
-  .pills {
+  .curtain-stage {
+    position: absolute;
+    inset: 0;
+  }
+  .choice-overlay canvas#choiceRain {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .curtain-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 51%;
+    background:
+      repeating-linear-gradient(90deg,
+        #7a1015 0px, #8f171d 14px, #6c0e12 28px, #9c1c22 42px);
+    box-shadow: inset 0 0 80px 10px rgba(0,0,0,0.55);
+    transition: transform 1.1s cubic-bezier(0.7, 0, 0.3, 1);
+    z-index: 3;
+  }
+  .curtain-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 20%, transparent 80%, rgba(0,0,0,0.45));
+  }
+  .curtain-panel.left { left: 0; transform-origin: left; }
+  .curtain-panel.right { right: 0; transform-origin: right; }
+  .choice-overlay.opening .curtain-panel.left { transform: translateX(-102%); }
+  .choice-overlay.opening .curtain-panel.right { transform: translateX(102%); }
+
+  .curtain-valance {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 46px;
+    background: repeating-linear-gradient(90deg, #6c0e12 0px, #6c0e12 20px, #8f171d 20px, #8f171d 40px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+    z-index: 4;
+    transition: opacity 0.4s ease 0.6s;
+  }
+  .choice-overlay.opening .curtain-valance { opacity: 0; }
+
+  .rope-wrap {
     position: relative;
-    z-index: 2;
+    z-index: 5;
     display: flex;
-    gap: 60px;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.6s ease, transform 0.6s ease;
     pointer-events: none;
-  }
-  .pills.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-  .pill-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    cursor: pointer;
     background: none;
     border: none;
-    cursor: pointer;
     font-family: inherit;
-    text-decoration: none;
+    padding: 0;
   }
-  .pill-shape {
-    width: 34px;
-    height: 90px;
-    border-radius: 999px;
-    box-shadow: 0 0 24px 4px currentColor;
-    transition: transform 0.25s;
+  .rope-wrap.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .choice-overlay.opening .rope-wrap { opacity: 0; pointer-events: none; }
+  .rope-cord {
+    width: 4px;
+    height: 130px;
+    background: linear-gradient(90deg, #c9a24a, #f4d98a, #c9a24a);
+    border-radius: 3px;
+    box-shadow: 0 0 12px rgba(244,217,138,0.25);
+    transition: transform 0.35s ease;
   }
-  .pill-option:hover .pill-shape { transform: scale(1.08) translateY(-4px); }
-  .pill-shape.blue { background: linear-gradient(180deg, #6ec6ff, #2196f3); color: #2196f3; }
-  .pill-shape.red { background: linear-gradient(180deg, #ff6b6f, var(--red)); color: var(--red); }
-  .pill-name { font-size: 15px; color: var(--cream); }
-  .pill-sub { font-size: 12px; color: var(--muted); max-width: 20ch; text-align: center; }
+  .rope-wrap:hover .rope-cord,
+  .rope-wrap:active .rope-cord { transform: scaleY(1.06); }
+  .rope-tassel {
+    width: 26px;
+    height: 30px;
+    border-radius: 6px 6px 12px 12px;
+    background: linear-gradient(180deg, #f4d98a, #c9a24a);
+    box-shadow: 0 0 14px rgba(244,217,138,0.3);
+  }
+  .rope-label {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
 </style>
 </head>
 <body>
@@ -401,25 +449,23 @@
       <div class="choice-intro">
         <h2>There's one more thing here</h2>
         <p>Not everything on this site is where it looks like it is.</p>
-        <button class="choice-trigger" id="choiceTrigger">follow the white rabbit</button>
+        <button class="choice-trigger" id="choiceTrigger">pull the rope</button>
       </div>
     </section>
 
     <div class="choice-overlay" id="choiceOverlay">
       <button class="close-x" id="choiceClose" aria-label="Close">&times;</button>
       <canvas id="choiceRain"></canvas>
-      <div class="pills" id="choicePills">
-        <a class="pill-option" href="news.html">
-          <div class="pill-shape blue"></div>
-          <div class="pill-name">Blue</div>
-          <div class="pill-sub">stay on script</div>
-        </a>
-        <a class="pill-option" href="game.html">
-          <div class="pill-shape red"></div>
-          <div class="pill-name">Red</div>
-          <div class="pill-sub">see how deep it goes</div>
-        </a>
+      <div class="curtain-stage" aria-hidden="true">
+        <div class="curtain-panel left"></div>
+        <div class="curtain-panel right"></div>
+        <div class="curtain-valance"></div>
       </div>
+      <button class="rope-wrap" id="ropePull">
+        <div class="rope-cord"></div>
+        <div class="rope-tassel"></div>
+        <div class="rope-label">pull</div>
+      </button>
     </div>
 
     <footer>
@@ -434,11 +480,11 @@
     const trigger = document.getElementById('choiceTrigger');
     const overlay = document.getElementById('choiceOverlay');
     const closeBtn = document.getElementById('choiceClose');
-    const pills = document.getElementById('choicePills');
+    const rope = document.getElementById('ropePull');
     const canvas = document.getElementById('choiceRain');
     const ctx = canvas.getContext('2d');
     const chars = "JASONMERLINO".split("");
-    let drops = [], animId, pillsTimer;
+    let drops = [], animId, ropeTimer, navTimer;
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -464,19 +510,29 @@
     function openOverlay() {
       resize();
       overlay.classList.add('active');
+      overlay.classList.remove('opening');
       drawRain();
-      pillsTimer = setTimeout(() => pills.classList.add('show'), 1300);
+      ropeTimer = setTimeout(() => rope.classList.add('show'), 900);
+    }
+
+    function pullRope() {
+      overlay.classList.add('opening');
+      rope.classList.remove('show');
+      // curtains slide open, but the falling code stays lit behind them
+      navTimer = setTimeout(() => { window.location.href = 'game.html'; }, 1600);
     }
 
     function closeOverlay() {
-      overlay.classList.remove('active');
-      pills.classList.remove('show');
-      clearTimeout(pillsTimer);
+      overlay.classList.remove('active', 'opening');
+      rope.classList.remove('show');
+      clearTimeout(ropeTimer);
+      clearTimeout(navTimer);
       cancelAnimationFrame(animId);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     trigger.addEventListener('click', openOverlay);
+    rope.addEventListener('click', pullRope);
     closeBtn.addEventListener('click', closeOverlay);
     window.addEventListener('resize', () => { if (overlay.classList.contains('active')) resize(); });
   })();
