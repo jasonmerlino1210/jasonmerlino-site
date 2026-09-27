@@ -93,38 +93,68 @@
   }
   .dot.filled { background: var(--red); border-color: var(--red); }
 
-  .lane {
+  .field {
     position: relative;
-    width: min(560px, 88vw);
-    height: 64px;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #17140f, #121110);
+    width: min(560px, 90vw);
+    height: 210px;
+    border-radius: 16px;
     border: 1px solid var(--hairline);
     overflow: hidden;
+    background: repeating-linear-gradient(180deg, #16341c 0px, #16341c 22px, #123016 22px, #123016 44px);
+  }
+  .figure {
+    position: absolute;
+    top: 14px;
+    width: 42px;
+    height: 66px;
+  }
+  .figure.pitcher { left: 10%; }
+  .figure.batter { right: 8%; transform: scaleX(-1); }
+  .figure svg { width: 100%; height: 100%; }
+
+  .mound {
+    position: absolute;
+    left: calc(10% + 2px);
+    bottom: 62px;
+    width: 30px;
+    height: 12px;
+    border-radius: 50%;
+    background: #6b4a30;
+  }
+  .base-path {
+    position: absolute;
+    left: 8%;
+    right: 6%;
+    bottom: 56px;
+    height: 34px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6b4a30, #7c5636);
+    border: 1px solid rgba(0,0,0,0.25);
   }
   .sweet-zone {
     position: absolute;
     right: 8%;
     top: 0; bottom: 0;
-    width: 10%;
-    background: rgba(61,220,79,0.12);
-    border-left: 1px dashed rgba(61,220,79,0.4);
-    border-right: 1px dashed rgba(61,220,79,0.4);
+    width: 12%;
+    background: rgba(61,220,79,0.16);
+    border-left: 1px dashed rgba(61,220,79,0.45);
+    border-right: 1px dashed rgba(61,220,79,0.45);
   }
   .plate {
     position: absolute;
-    right: 3%;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
+    right: 2%;
+    bottom: 66px;
+    width: 14px;
+    height: 14px;
+    background: var(--cream);
+    clip-path: polygon(50% 0%, 100% 35%, 100% 100%, 0% 100%, 0% 35%);
   }
   .ball {
     position: absolute;
-    left: 2%;
-    top: 50%;
-    transform: translate(0, -50%);
-    width: 20px;
-    height: 20px;
+    left: 3%;
+    bottom: 68px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff, var(--red) 70%);
     opacity: 0;
@@ -222,9 +252,33 @@
       </div>
     </div>
 
-    <div class="lane">
-      <div class="sweet-zone"></div>
-      <div class="plate">🏠</div>
+    <div class="field">
+      <div class="figure pitcher">
+        <svg viewBox="0 0 40 66" fill="none" stroke="#f3ede2" stroke-width="3" stroke-linecap="round">
+          <circle cx="18" cy="10" r="7" />
+          <line x1="18" y1="17" x2="18" y2="40" />
+          <line x1="18" y1="40" x2="8" y2="60" />
+          <line x1="18" y1="40" x2="27" y2="52" />
+          <line x1="18" y1="22" x2="4" y2="10" stroke="#d21f27" />
+          <line x1="18" y1="24" x2="29" y2="18" />
+        </svg>
+      </div>
+      <div class="figure batter">
+        <svg viewBox="0 0 40 66" fill="none" stroke="#f3ede2" stroke-width="3" stroke-linecap="round">
+          <circle cx="18" cy="10" r="7" />
+          <line x1="18" y1="17" x2="18" y2="40" />
+          <line x1="18" y1="40" x2="8" y2="60" />
+          <line x1="18" y1="40" x2="28" y2="60" />
+          <line x1="18" y1="22" x2="12" y2="28" />
+          <line x1="18" y1="22" x2="12" y2="32" />
+          <line x1="12" y1="30" x2="0" y2="6" stroke="#d21f27" stroke-width="3.5" />
+        </svg>
+      </div>
+      <div class="mound"></div>
+      <div class="base-path">
+        <div class="sweet-zone"></div>
+      </div>
+      <div class="plate"></div>
       <div class="ball" id="ball"></div>
     </div>
 
@@ -270,7 +324,7 @@
 
   function resetBallVisual() {
     ball.style.transition = 'none';
-    ball.style.left = '2%';
+    ball.style.left = '13%';
     ball.classList.remove('flying');
     void ball.offsetWidth;
   }
@@ -288,7 +342,7 @@
     requestAnimationFrame(() => {
       ball.style.transition = `left ${pitchDuration}ms linear`;
       ball.classList.add('flying');
-      ball.style.left = '90%';
+      ball.style.left = '84%';
     });
 
     resolveTimer = setTimeout(() => {
